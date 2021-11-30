@@ -17,6 +17,7 @@ Definition of methods for A3a.vpl.ControlBar which add support for buttons.
 
 /**
 	@typedef {function (
+		A3a.vpl.Application,
 		string,
 		CanvasRenderingContext2D,
 		A3a.vpl.Canvas.dims,
@@ -72,7 +73,7 @@ A3a.vpl.ControlBar.prototype.addButton = function (app, id, cssClasses, drawButt
 		this.addControl(
 			function (ctx, box, isPressed) {
 				if (app.forcedCommandState) {
-					drawButton(id, ctx, canvas.dims, canvas.css, cssClasses, box,
+					drawButton(app, id, ctx, canvas.dims, canvas.css, cssClasses, box,
 						app.i18n,
 						app.forcedCommandState.isEnabled && (keepAvailable || !app.uiConfig.toolbarCustomizationDisabled),
 						app.forcedCommandState.isSelected,
@@ -85,7 +86,7 @@ A3a.vpl.ControlBar.prototype.addButton = function (app, id, cssClasses, drawButt
 						var targetObject = app.kbdControl.getTargetObject();
 						isEnabled = app.commands.canDrop(id, {data: targetObject});
 					}
-					drawButton(id, ctx, canvas.dims, canvas.css, cssClasses, box,
+					drawButton(app, id, ctx, canvas.dims, canvas.css, cssClasses, box,
 						app.i18n,
 						isEnabled,
 						app.commands.isSelected(id),
@@ -177,20 +178,23 @@ A3a.vpl.ControlBar.hasAvailableButtons = function (app, buttons) {
 	@param {A3a.vpl.Application} app
 	@param {Array.<string>} buttons button id, "!space" for space, "!stretch" for stretch
 	@param {Array.<string>} cssClasses
+	@param {?function(string):Array.<string>=} addClasses
+	@param {?function(string):Array.<string>=} addPseudoClasses
 	@return {Object.<string,CSSParser.VPL.Box>}
 */
-A3a.vpl.ControlBar.buttonBoxes = function (app, buttons, cssClasses) {
+A3a.vpl.ControlBar.buttonBoxes = function (app, buttons, cssClasses, addClasses, addPseudoClasses) {
 	/** @type {Object.<string,CSSParser.VPL.Box>} */
 	var boxes = {};
 	for (var i = 0; i < buttons.length; i++) {
 		if (buttons[i][0] !== "!") {
+			var cssPseudoClasses = app.draggedItem && app.commands.canDrop(buttons[i], app.draggedItem)
+				? ["possible-drop-target"]
+				: [];
 			var buttonBox = app.css.getBox({
 				tag: "button",
 				id: buttons[i].replace(/:/g, "-"),
-				clas: cssClasses,
-				pseudoClass: app.draggedItem && app.commands.canDrop(buttons[i], app.draggedItem)
-					? ["possible-drop-target"]
-					: null
+				clas: addClasses ? cssClasses.concat(addClasses(buttons[i])) : cssClasses,
+				pseudoClass: addPseudoClasses ? cssPseudoClasses.concat(addPseudoClasses(buttons[i])) : cssPseudoClasses
 			});
 			boxes[buttons[i]] = buttonBox;
 		}
