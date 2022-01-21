@@ -1,5 +1,5 @@
 trigger:
-- thymio-suite-porting
+- master
 
 variables:
 - name: compiler_url
