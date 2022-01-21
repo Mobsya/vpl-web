@@ -1,0 +1,61 @@
+trigger:
+- thymio-suite-porting
+
+variables:
+- name: compiler_url
+  value: "https://github.com/Mobsya/ci-data/releases/download/data/closure-compiler-v20200406.jar"
+- name: EXPORT_NAME
+  value: vpl3-thymio-suite
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+
+- script: wget -q $(compiler_url)
+  displayName: 'Get compiler'
+
+- task: DownloadSecureFile@1
+  name: 'docs7z'
+  displayName: 'Download About and Logo'
+  inputs:
+    secureFile: 'docs.7z'
+    
+- script: |
+    
+    EXPORT_DIR=$(Build.ArtifactStagingDirectory)/$EXPORT_NAME
+    CLOSURE_COMPILER="./closure-compiler-v20200406.jar"
+
+    # extracts only what is needed
+    mkdir -p $EXPORT_DIR/ui && cp -R ./ui/svg "$_"
+    cp -R ./thymio $EXPORT_DIR
+    cp -R ./libs $EXPORT_DIR
+    # includes the license files
+    cp ./LICENSE.txt $EXPORT_DIR
+    cp ./LICENSE-BSD-3.txt $EXPORT_DIR
+    cp ./LICENSE-CC-BY-NC-ND-4.txt $EXPORT_DIR
+    cp ./vpl-license.html $EXPORT_DIR
+    # include about
+    7z x $(docs7z.secureFilePath) -y
+    cp ./vpl-about.html $EXPORT_DIR
+    cp ./Logo_vpl.svg $EXPORT_DIR
+    cp ./EPFL_Logo_SVG.svg $EXPORT_DIR
+    cp ./grs_logo_RGB.svg $EXPORT_DIR
+
+    # generate index.html
+    python3 ./inlinersrctool.py --input=./index-svg-min-template.html | sed -e "s/vpl-min.js/$EXPORT_NAME.min.js/" > $EXPORT_DIR/index.html    
+    
+    CLOSURECOMPILER=$CLOSURE_COMPILER make -f Makefile-jsmin
+    cp ./vpl-min.js $EXPORT_DIR/$EXPORT_NAME.min.js
+
+    echo "generating export archive"
+    cd $(Build.ArtifactStagingDirectory)
+    tar -cvzf $EXPORT_NAME.tar.gz $EXPORT_NAME/*
+    rm -rf $EXPORT_NAME
+    
+  displayName: 'Run build script'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    artifactName: 'vpl3-thymio-suite'

@@ -39685,6 +39685,7 @@ window.TDM = function (url, options) {
 
             case 15:
               console.log("Node locked");
+              window.document.title = node._name
               options.change && options.change(true);
               _context.next = 22;
               break;

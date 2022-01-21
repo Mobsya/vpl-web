@@ -182,12 +182,10 @@ function vplLoadResourcesInScripts(rootFilename, rootDir, getAuxiliaryFilenames,
 	@return {string}
 */
 function vplGetQueryOption(key) {
-	var query = "";
-	if (window["vplQueryOptions"]) {
-		query = window["vplQueryOptions"];
-	} else {
-		var r = /^[^?]*\?([^#]*)/.exec(document.location.href);
-		query = r && r[1];
+	var query = window["vplQueryOptions"] || "";
+	var r = /^[^?]*\?([^#]*)/.exec(document.location.href);
+	if (r) {
+		query = query ? query + "&" + r[1] : r[1];
 	}
 	if (query) {
 		var pairs = query
@@ -229,6 +227,13 @@ function vplGetHashOption(key) {
 	@return {void}
 */
 function vplSetup(gui, rootDir) {
+
+	// platform-specific options
+	if (window["vplTextFieldInputEvents"] === undefined) {
+		// true on Android, false elsewhere
+		window["vplTextFieldInputEvents"] = navigator.userAgent.indexOf("Android") >= 0;
+	}
+
 	// handle overlays in gui
 	/** @type {Array.<Object>} */
 	var helpFragments = [];
@@ -654,14 +659,20 @@ function vplSetup(gui, rootDir) {
 					if (data) {
 						app.program.filename = options && options["filename"] || A3a.vpl.Program.defaultFilename;
 						app.program.readOnly = options != undefined && options["readOnly"] == true;
+						app.program.fixedFilename = options != undefined && options["fixedFilename"] != undefined
+							? options["fixedFilename"] == true
+							: options["readOnly"] == true;
 						if (options != undefined && options["customizationMode"] == true) {
 							app.uiConfig.blockCustomizationMode = true;
 							app.uiConfig.toolbarCustomizationMode = role === "teacher";
 						}
 						app.program.importFromJSON(data, function () {
-                            app.setHelpForCurrentAppState();
+							app.setHelpForCurrentAppState();
 							app.renderProgramToCanvas();
 						});
+						if (options != undefined && options["setAsNew"] == true) {
+							app.commands.execute("vpl:teacher-setasnew");
+						}
 						app.restored = true;
 					}
 				} catch (e) {}
@@ -671,7 +682,7 @@ function vplSetup(gui, rootDir) {
 			var vplJson = window.localStorage.getItem(A3a.vpl.Program.defaultFilename);
 			if (vplJson) {
 				app.program.importFromJSON(vplJson, function () {
-                    app.setHelpForCurrentAppState();
+					app.setHelpForCurrentAppState();
 					app.renderProgramToCanvas();
 				});
 			}

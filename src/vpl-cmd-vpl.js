@@ -20,6 +20,18 @@ commands with commands related to the VPL programming view.
 	@return {void}
 */
 A3a.vpl.Application.prototype.addVPLCommands = function () {
+
+	/** Get program filename without suffix
+		@param {A3a.vpl.Application} app
+		@return {string}
+	*/
+	function baseFilename(app) {
+		var filename = app.program.filename || A3a.vpl.Program.defaultFilename;
+		return filename.slice(-A3a.vpl.Program.suffix.length - 1) === "." + A3a.vpl.Program.suffix
+			? filename.slice(0, -A3a.vpl.Program.suffix.length - 1)
+			: filename;
+	}
+
 	this.commands.add("vpl:close", {
 		action: function (app, modifier) {
 			app.setView(["vpl"], {closeView: true});
@@ -100,7 +112,8 @@ A3a.vpl.Application.prototype.addVPLCommands = function () {
 			app.renderProgramToCanvas();
 		},
 		isEnabled: function (app) {
-			return !app.program.noVPL && !app.program.readOnly && !app.program.isEmpty();
+			return !app.program.noVPL && !app.program.readOnly &&
+				(app.program.filename != null || !app.program.isEmpty());
 		},
 		object: this,
 		isAvailable: function (app) {
@@ -112,7 +125,7 @@ A3a.vpl.Application.prototype.addVPLCommands = function () {
 		action: function (app, modifier) {
 			if (modifier) {
 				var html = app.toHTMLDocument(app.css);
-				A3a.vpl.Program.downloadText(html, "vpl-program.html", "text/html");
+				A3a.vpl.Program.downloadText(html, baseFilename(app) + ".html", "text/html");
 			} else {
 				var json = app.program.exportToJSON({lib: true, prog: true});
 				A3a.vpl.Program.downloadText(json,
@@ -201,7 +214,8 @@ A3a.vpl.Application.prototype.addVPLCommands = function () {
 				A3a.vpl.Program.downloadText(html, "vpl-ui.html", "text/html");
 			} else {
 				var html = app.toHTMLDocument(app.css);
-				A3a.vpl.Program.downloadText(html, "vpl-program.html", "text/html");
+				var filename = baseFilename(app) + ".html";
+				A3a.vpl.Program.downloadText(html, filename, "text/html");
 			}
 		},
 		isEnabled: function (app) {
@@ -453,7 +467,11 @@ A3a.vpl.Application.prototype.addVPLCommands = function () {
 			{selected: true, state: 0.2},
 			{selected: true, state: 0.5},
 			{selected: false, state: 1}
-		]
+		],
+		isAvailable: function (app) {
+			// same as vpl:run
+			return app.currentRobotIndex >= 0;
+		}
 	});
 	this.commands.add("vpl:debug", {
 		// not implemented yet
@@ -730,17 +748,39 @@ A3a.vpl.Application.prototype.addVPLCommands = function () {
 		}
 	});
 	this.commands.add("vpl:filename", {
+		action: function (app, modifier) {
+			if (!app.program.fixedFilename) {
+				app.startTextField({
+					initialValue: app.program.filename || A3a.vpl.Program.defaultFilename,
+					suffix: "." + A3a.vpl.Program.suffix,
+					display: function (str, selBegin, selEnd) {
+						app.vplCanvas.onUpdate && app.vplCanvas.onUpdate();
+					},
+					finish: function (str) {
+						if (str !== null) {
+							app.program.saveStateBeforeChange();
+							app.program.filename = str;
+						}
+						app.textField = null;
+						app.vplCanvas.onUpdate && app.vplCanvas.onUpdate();
+					},
+					ref: app.program
+				});
+			}
+		},
 		isEnabled: function (app) {
-			return false;
+			return !app.program.fixedFilename;
 		},
 		getState: function (app) {
-			return (app.program.filename || "") + (app.username ? "\n" + app.username : "");
+			return app.program.fixedFilename
+			 	? (app.program.filename || A3a.vpl.Program.defaultFilename) + (app.username ? "\n" + app.username : "")
+				: app.program.filename || A3a.vpl.Program.defaultFilename;
 		},
 		object: this,
 		isAvailable: function (app) {
-			return app.program.filename || app.username ? true : false;
+			return app.program.filename || app.username || !app.program.fixedFilename ? true : false;
 		}
-	})
+	});
 	this.commands.add("vpl:teacher", {
 		action: function (app, modifier) {
 			app.program.uiConfig.blockCustomizationMode = !app.program.uiConfig.blockCustomizationMode;
@@ -751,6 +791,12 @@ A3a.vpl.Application.prototype.addVPLCommands = function () {
 			}
 			if (!app.program.uiConfig.blockCustomizationMode) {
 				app.setHelpForCurrentAppState();
+				if (app.vplToolbarConfig.indexOf("vpl:teacher-setasnew") < 0 &&
+					app.vplToolbar2Config.indexOf("vpl:setasnew") < 0) {
+					// no "vpl:setasnew" button in any vpl toolbar:
+					// do it automatically when quitting configuration mode
+					app.commands.execute("vpl:teacher-setasnew");
+				}
 			}
 		},
 		isEnabled: function (app) {

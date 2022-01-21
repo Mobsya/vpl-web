@@ -319,9 +319,15 @@ A3a.vpl.Application.prototype.pushVPLKeyShortcuts = function () {
 */
 A3a.vpl.Application.prototype.startTextField = function (options) {
 	if (this.textField !== null) {
+		if (options.ref != undefined && options.ref === this.textField.ref) {
+			// same ref, nothing to do
+			return;
+		}
 		this.textField.finish(true);
 	}
-	this.textField = new A3a.vpl.TextField(this, options);
+	this.textField = window["vplTextFieldInputEvents"]
+		? new A3a.vpl.TextFieldInput(this, options)
+		: new A3a.vpl.TextField(this, options);
 };
 
 /** Translate message using the current language
@@ -377,10 +383,13 @@ A3a.vpl.Application.prototype.setAboutBoxContent = function (html) {
 A3a.vpl.Application.prototype.setHelpContent = function (html, isStatement) {
 	var app = this;
 	var saveBox = new CSSParser.VPL.Box();
-	saveBox.width = saveBox.height = 64;
+	if (/ipad/i.test(navigator.userAgent))
+		saveBox.width = saveBox.height = 0;
+	else
+		saveBox.width = saveBox.height = 64;
 	var dims = A3a.vpl.Canvas.calcDims(16, 16);
 	var saveDataURL = A3a.vpl.Canvas.controlToDataURL(function (ctx, box, isPressed) {
-		(app.program.toolbarDrawButton || A3a.vpl.Commands.drawButtonJS)("vpl:save", ctx, dims, app.css, ["vpl", "top", "detached"], saveBox, app.i18n, true, false, false, null);
+		(app.program.toolbarDrawButton || A3a.vpl.Commands.drawButtonJS)(app, "vpl:save", ctx, dims, app.css, ["vpl", "top", "detached"], saveBox, app.i18n, true, false, false, null);
 	}, saveBox.width, saveBox.height, saveBox, dims, 1);
 
 	var saveEl = '<img src="' + saveDataURL.url +

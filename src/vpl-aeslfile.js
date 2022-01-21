@@ -190,20 +190,43 @@ A3a.vpl.Program.downloadText = (function () {
 		}
 
 		mimetype = mimetype || "application/xml";
+		
+		/*this change was commented because not working on ios14*/
+		/*if (/ipad/i.test(navigator.userAgent) && ( mimetype == "application/x-vpl3" )){
+			mimetype = "application/json";
+		}*/
 
 		/** @type {string} */
 		var url;
 		if (typeof window.Blob === "function" && window.URL) {
 			// blob URL
 			var blob = new window.Blob([text], {"type": mimetype});
+
+			// Special use on Ipad
+			if (/ipad/i.test(navigator.userAgent)) {
+				var reader = new FileReader();
+				reader.readAsDataURL(blob);
+				reader.onloadend = function () {
+					var base64data = reader.result;
+					window.webkit.messageHandlers["blobReady"].postMessage({data: base64data, filename: filename});
+				}
+			}
+
 			url = window.URL.createObjectURL(blob);
 		} else {
 			// data URL
 			url = "data:" + mimetype + ";base64," + window["btoa"](text);
 		}
-		A3a.vpl.Program.setAnchorDownload(anchor, text, filename, mimetype);
+		
+		if ( /ipad/i.test(navigator.userAgent) ) {
+			anchor.href = url;
+    		anchor.download = filename;
+		} else {
+			A3a.vpl.Program.setAnchorDownload(anchor, text, filename, mimetype);
+		}
+	
 		anchor.click();
-		if (typeof url !== "string") {
+		if ( typeof url !== "string" || /ipad/i.test(navigator.userAgent) ) {
 			window.URL.revokeObjectURL(url);
 		}
 	};

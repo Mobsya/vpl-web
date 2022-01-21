@@ -438,12 +438,7 @@ A3a.vpl.Application.prototype.editComment = function (ruleIndex) {
 	var canvas = this.vplCanvas;
 	var rule = this.program.program[ruleIndex];
 
-	if (this.textField && this.textField.ref === rule) {
-		// rule already being edited
-		return;
-	}
-
-	this.textField = new A3a.vpl.TextField(this, {
+	this.startTextField({
 		initialValue: /** @type {A3a.vpl.RuleComment} */(rule).comment,
 		display: function (str, selBegin, selEnd) {
 			canvas.onUpdate && canvas.onUpdate();
@@ -1138,7 +1133,18 @@ A3a.vpl.Application.prototype.renderProgramToCanvas = function () {
 	});
 
 	// box sizes
-	var toolbarItemBoxes = A3a.vpl.ControlBar.buttonBoxes(this, this.vplToolbarConfig, ["vpl", "top"]);
+	var toolbarItemBoxes = A3a.vpl.ControlBar.buttonBoxes(this, this.vplToolbarConfig, ["vpl", "top"],
+		null,
+		function (id) {
+			switch (id) {
+			case "vpl:filename":
+				if (self.textField != null && self.textField.ref === self.program) {
+					return ["edited"];
+				}
+				break;
+			}
+			return [];
+		});
 	var toolbarItemHeight = A3a.vpl.ControlBar.maxBoxHeight(toolbarItemBoxes);
 	var toolbar2ItemBoxes = A3a.vpl.ControlBar.buttonBoxes(this, this.vplToolbar2Config, ["vpl", "bottom"]);
 	var toolbar2ItemHeight = A3a.vpl.ControlBar.maxBoxHeight(toolbar2ItemBoxes);
