@@ -185,7 +185,7 @@ function vplGetQueryOption(key) {
 	var query = window["vplQueryOptions"] || "";
 	var r = /^[^?]*\?([^#]*)/.exec(document.location.href);
 	if (r) {
-		query = query ? query + "&" + r[1] : r[1];
+		query = query ? r[1] + "&" + query : r[1];
 	}
 	if (query) {
 		var pairs = query
@@ -535,6 +535,12 @@ function vplSetup(gui, rootDir) {
 	 	case "sim":
 			runGlue = app.installRobotSimulator({canvasFilter: filter, canvasTransform: transform});
 			runGlue.init(language);
+			break;
+		default:
+			if (window["vplConnections"] && window["vplConnections"].hasOwnProperty(robotName)) {
+				runGlue = window["vplConnections"][robotName]();
+				runGlue.init(language);
+			}
 			break;
 		}
 		if (runGlue) {

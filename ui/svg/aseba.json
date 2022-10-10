@@ -343,8 +343,8 @@
 				],
 				"statement":
 					[
-						"motor.left.target = `Math.round([0,200,250,100,-150,-200,-250,-100,150][$[0]] * slowdown)`\n",
-						"motor.right.target = `Math.round([0,200,150,-100,-250,-200,-150,100,250][$[0]] * slowdown)`\n"
+						"motor.left.target = `Math.round([0,200,250,100,-250,-200,-150,-100,150][$[0]] * slowdown)`\n",
+						"motor.right.target = `Math.round([0,200,150,-100,-150,-200,-250,100,250][$[0]] * slowdown)`\n"
 					]
 			}
 		},
@@ -443,8 +443,10 @@
 					"call leds.bottom.right(`$.map(function (x) { return Math.round(32 * x); }).join(', ')`)\n",
 					"bottomColor = [`$.map(function (x) { return Math.round(32 * x); }).join(', ')`]\n"
 				],
-				"statementWithoutInit":
-					"call leds.top(`$.map(function (x) { return Math.round(32 * x); }).join(', ')`)\n"
+				"statementWithoutInit": [
+					"call leds.bottom.left(`$.map(function (x) { return Math.round(32 * x); }).join(', ')`)\n",
+					"call leds.bottom.right(`$.map(function (x) { return Math.round(32 * x); }).join(', ')`)\n"
+				]
 			}
 		},
 		{
